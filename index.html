@@ -281,7 +281,6 @@
 					this.color = 0xfff000;
 					this.intensity = 1;
 					this.distance = 100;
-					this.angle = 0.5;
 					this.x = 500;
 					this.y = 700;
 					this.z = 500;
@@ -330,12 +329,6 @@
 				});
                 directionalFolder.add(directionalLightControls, 'intensity', 0, 3).onChange(function (e) {
 					directionalLight.intensity = e;
-				});	
-				directionalFolder.add(directionalLightControls, 'angle', 0, Math.PI * 2).onChange(function (e) {
-					directionalLight.angle = e;
-					if(directionalLightControls.helper){
-						scene.getObjectByName("directionalLightHelper").update();
-					}
 				});	
 				directionalFolder.add(directionalLightControls, 'x', -500, 500).onChange(function (e) {
 					directionalLight.position.x = e;
