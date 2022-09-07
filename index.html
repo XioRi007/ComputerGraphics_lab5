@@ -306,11 +306,11 @@
 						directionalLight.intensity = directionalLightControls.intensity;
 						directionalLight.shadowMapHeight = 1024;
 						directionalLight.shadowMapWidth = 1024;
+						directionalLight.name = 'directionalLight';
 
-
-				scene.add(directionalLight);
+						scene.add(directionalLight);
 					}else{
-						scene.remove(scene.getObjectByName("spotLight"));
+						scene.remove(scene.getObjectByName("directionalLight"));
 					}
 				}); 
 				directionalFolder.add(directionalLightControls, 'helper').onChange(function (value) {
