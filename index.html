@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+    <head> 
+         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+         <title>Лабораторна робота 4 </title>
+	     <script src="./js/three.min.js"></script>
+	 	 <script src="./js/OrbitControls.js"></script>
+		  <script src="./js/dat.gui.js"></script>
+		
+		
+		
+	</head>
+	<body>
+        
+		<script>
+
+		
+		init();
+	
+			function init()
+			{
+				
+				// створюємо рендер і задаємо розмір
+				var renderer = window.WebGLRenderingContext ? new THREE.WebGLRenderer({antialias:true}) : new THREE.CanvasRenderer();
+				renderer.setClearColor(new THREE.Color(0xEEEEEE));
+                renderer.setSize( window.innerWidth, window.innerHeight );
+				
+				renderer.shadowMapSoft = true;
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+				
+				// додаємо вивід візуалізатора до html-елементу
+				document.body.appendChild( renderer.domElement );
+				   
+				// створюємо сцену, яка буде містити всі наші елементи, такі як об'єкти, камери і джерела світла
+				var scene = new THREE.Scene();
+				
+				// створюємо камеру
+				var camera = new THREE.PerspectiveCamera(45,window.innerWidth / window.innerHeight, 1,10000);
+				
+				
+				camera.position.set(-1200, 600, 1600);
+				camera.lookAt(new THREE.Vector3(0,0,0));
+						
+				var controls = new THREE.OrbitControls(camera, renderer.domElement);
+				controls.target = new THREE.Vector3(0, 0, 0);
+
+				// // додати directional light
+				// dLight = new THREE.DirectionalLight(0xffffff,1);
+				// dLight.position.set(200, 400, 0);
+				// dLight.castShadow = true;
+				// dLight.name = "dLight";
+				// dLight.shadow.mapSize.height = dLight.shadow.mapSize.width = 1000;
+					
+				// var d = 500;
+
+				// dLight.shadow.camera.left = - d;
+				// dLight.shadow.camera.right = d;
+				// dLight.shadow.camera.top = d;
+				// dLight.shadow.camera.bottom = - d;
+
+				// dLight.shadow.camera.far = 5000;
+				// dLight.shadow.bias = - 0.0001;
+
+				// dLight.distance = 0;
+				// dLight.intensity = 1;
+				// dLight.shadowMapHeight = 1024;
+				// dLight.shadowMapWidth = 1024;
+							
+				// scene.add(dLight);
+				
+						
+				// додати площину
+				var plane_Geometry = new THREE.PlaneGeometry(1200, 1200, 1, 1);
+				plane = new THREE.Mesh(plane_Geometry, new THREE.MeshLambertMaterial({color: 0x9669FE}));
+				plane.position.y = -20;
+				plane.rotation.x = - Math.PI / 2;
+				plane.receiveShadow = true;
+				scene.add(plane);
+				
+				// створити new group (Object3D)
+				var group = new THREE.Object3D();
+
+				mats = [ 
+					new THREE.MeshPhongMaterial({color:0xffffff, transparent:true, map: new THREE.TextureLoader().load('./images/1.jpg' )}),
+					new THREE.MeshPhongMaterial({color:0xffffff, transparent:true}),
+					new THREE.MeshPhongMaterial({color:0xffffff, transparent:true, map: new THREE.TextureLoader().load('./images/2.jpg' )}),
+				];
+				const cone = makeCone(-85, 250, 0, mats);
+				group.add(cone);
+				scene.add(group);
+
+				
+		
+								
+				
+				//интерфейс
+				const gui_controls = new function() {
+					this.DirectionalHelper = false;					
+                	this.rotationSpeed = 0.02;
+					this.x = 250;
+					this.y = 500;
+					this.z = 500;
+					this.intensity = 0.5;
+					
+                };	
+
+				const gui = new dat.GUI();
+
+				
+                gui.add(gui_controls, 'rotationSpeed',0,0.5); 
+
+				//ambient light controls				
+				const ambientLightControls = new function(){
+					this.on = false;
+					this.color = 0xffffff;
+					this.intensity = 1;
+				};
+				const ambientLightFolder = gui.addFolder('Ambient Light');
+				ambientLightFolder.add(ambientLightControls, 'on').onChange(function (value) {
+					if(value){
+						const ambiColor = ambientLightControls.color;
+						const ambiIntensity=ambientLightControls.intensity;
+						ambientLight = new THREE.AmbientLight(ambiColor,ambiIntensity);
+						ambientLight.name = 'ambientLight';
+						scene.add(ambientLight);
+					}else{
+						scene.remove(scene.getObjectByName("ambientLight"));
+					}
+				}); 
+				ambientLightFolder.addColor(ambientLightControls, 'color').onChange(function (e) {
+					ambientLight.color = new THREE.Color(e);
+				});
+                ambientLightFolder.add(ambientLightControls, 'intensity', 0, 3).onChange(function (e) {
+					ambientLight.intensity = e;
+				});
+				ambientLightFolder.open();
+
+				//point light controls
+				const pointLightControls = new function(){
+					this.on = false;
+					this.helper = false;
+					this.color = 0xfff000;
+					this.intensity = 1;
+					this.distance = 100;
+					this.x = 300;
+					this.y = 300;
+					this.z = 300;
+					this.shadow = true;
+				};
+				const pointLightFolder = gui.addFolder('Point Light');
+				pointLightFolder.add(pointLightControls, 'on').onChange(function (value) {
+					if(value){
+						pointLight = new THREE.PointLight(0xffff00, 1.0);
+						pointLight.position.x = pointLightControls.x;
+						pointLight.position.y = pointLightControls.y;
+						pointLight.position.z = pointLightControls.z;
+						pointLight.castShadow = pointLightControls.shadow;
+						// pointLight.distance = pointLightControls.distance;
+						pointLight.shadowMapWidth = pointLight.shadowMapHeight = 1000;
+						
+						var d = 500;
+
+						pointLight.shadow.camera.left = - d;
+						pointLight.shadow.camera.right = d;
+						pointLight.shadow.camera.top = d;
+						pointLight.shadow.camera.bottom = - d;
+
+						pointLight.shadow.camera.far = 10000;
+						pointLight.shadow.bias = - 0.0001;
+						pointLight.name = "pointLight";
+						scene.add(pointLight);
+					}else{
+						scene.remove(scene.getObjectByName("pointLight"));
+					}
+				}); 
+				pointLightFolder.add(pointLightControls, 'helper').onChange(function (value) {
+					if(value){
+						var pointLightHelper = new THREE.PointLightHelper(pointLight, 50); // 50 is sphere size
+						pointLightHelper.name = "PointLightHelper";
+						scene.add(pointLightHelper);
+					}else{
+						scene.remove(scene.getObjectByName("PointLightHelper"));
+					}
+				}); 
+				pointLightFolder.add(pointLightControls, 'shadow').onChange(function (value) {
+					pointLight.castShadow = value
+				}); 
+				pointLightFolder.addColor(pointLightControls, 'color').onChange(function (e) {
+					pointLight.color = new THREE.Color(e);
+				});
+                pointLightFolder.add(pointLightControls, 'intensity', 0, 3).onChange(function (e) {
+					pointLight.intensity = e;
+				});	
+				// pointLightFolder.add(pointLightControls, 'distance', 0, 100).onChange(function (e) {
+				// 	pointLight.distance = e;
+				// });		
+				pointLightFolder.add(pointLightControls, 'x', -500, 500).onChange(function (e) {
+					pointLight.position.x = e;
+				});
+				pointLightFolder.add(pointLightControls, 'y', 0, 1000).onChange(function (e) {
+					pointLight.position.y = e;
+				});
+				pointLightFolder.add(pointLightControls, 'z', -500, 500).onChange(function (e) {
+					pointLight.position.z = e;
+				});
+				pointLightFolder.open();
+
+
+				//SpotLight controls
+				const spotLightControls = new function(){
+					this.on = false;
+					this.helper = false;
+					this.color = 0xfff000;
+					this.intensity = 1;
+					this.distance = 100;
+					this.angle = 0.5;
+					this.x = 500;
+					this.y = 700;
+					this.z = 500;
+					this.shadow = true;
+				};
+				const spotLightFolder = gui.addFolder('SpotLight');
+				spotLightFolder.add(spotLightControls, 'on').onChange(function (value) {
+					if(value){
+						spotLight = new THREE.SpotLight(spotLightControls.color);
+						spotLight.position.set(spotLightControls.x, spotLightControls.y, spotLightControls.z);
+						spotLight.castShadow = true;
+						spotLight.shadowCameraNear = 200;
+						spotLight.shadowCameraFar = 20000;
+						spotLight.shadowCameraFov = 3000;
+						spotLight.target = cone;
+						spotLight.distance = 0;
+						spotLight.angle = spotLightControls.angle;
+						spotLight.name = "spotLight";
+						scene.add(spotLight);
+					}else{
+						scene.remove(scene.getObjectByName("spotLight"));
+					}
+				}); 
+				spotLightFolder.add(spotLightControls, 'helper').onChange(function (value) {
+					if(value){
+						var spotLightHelper = new THREE.SpotLightHelper(spotLight); // 50 is sphere size
+						spotLightHelper.name = "spotLightHelper";
+						scene.add(spotLightHelper);
+					}else{
+						scene.remove(scene.getObjectByName("spotLightHelper"));
+					}
+				});
+				spotLightFolder.add(spotLightControls, 'shadow').onChange(function (value) {
+					spotLight.castShadow = value
+				}); 
+				spotLightFolder.addColor(spotLightControls, 'color').onChange(function (e) {
+					spotLight.color = new THREE.Color(e);
+				});
+                spotLightFolder.add(spotLightControls, 'intensity', 0, 3).onChange(function (e) {
+					spotLight.intensity = e;
+				});	
+				spotLightFolder.add(spotLightControls, 'angle', 0, Math.PI * 2).onChange(function (e) {
+					spotLight.angle = e;
+					if(spotLightControls.helper){
+						scene.getObjectByName("spotLightHelper").update();
+					}
+				});	
+				spotLightFolder.add(spotLightControls, 'x', -500, 500).onChange(function (e) {
+					spotLight.position.x = e;
+				});
+				spotLightFolder.add(spotLightControls, 'y', 0, 1000).onChange(function (e) {
+					spotLight.position.y = e;
+				});
+				spotLightFolder.add(spotLightControls, 'z', -500, 500).onChange(function (e) {
+					spotLight.position.z = e;
+				});
+				spotLightFolder.open();
+
+
+				//SpotLight controls
+				const directionalLightControls = new function(){
+					this.on = false;
+					this.helper = false;
+					this.color = 0xfff000;
+					this.intensity = 1;
+					this.distance = 100;
+					this.angle = 0.5;
+					this.x = 500;
+					this.y = 700;
+					this.z = 500;
+					this.shadow = true;
+				};
+				const directionalFolder = gui.addFolder('Directional Light');
+				directionalFolder.add(directionalLightControls, 'on').onChange(function (value) {
+					if(value){
+						directionalLight = new THREE.DirectionalLight(directionalLightControls.controls);
+						directionalLight.position.x = directionalLightControls.x;
+						directionalLight.position.y = directionalLightControls.y;
+						directionalLight.position.z = directionalLightControls.z;
+						directionalLight.castShadow = directionalLightControls.shadow;
+						directionalLight.shadowCameraNear = 20;
+						directionalLight.shadowCameraFar = 2000;
+						directionalLight.shadowCameraLeft = -500;
+						directionalLight.shadowCameraRight = 500;
+						directionalLight.shadowCameraTop = 500;
+						directionalLight.shadowCameraBottom = -500;
+
+						directionalLight.distance = 0;
+						directionalLight.intensity = directionalLightControls.intensity;
+						directionalLight.shadowMapHeight = 1024;
+						directionalLight.shadowMapWidth = 1024;
+
+
+				scene.add(directionalLight);
+					}else{
+						scene.remove(scene.getObjectByName("spotLight"));
+					}
+				}); 
+				directionalFolder.add(directionalLightControls, 'helper').onChange(function (value) {
+					if(value){
+						dlightHelper = new THREE.DirectionalLightHelper(directionalLight, 50); // 50 is helper size
+						dlightHelper.name="directionalLightHelper";
+						scene.add(dlightHelper);
+					}else{
+						scene.remove(scene.getObjectByName("directionalLightHelper"));
+					}
+				});
+				directionalFolder.add(directionalLightControls, 'shadow').onChange(function (value) {
+					directionalLight.castShadow = value
+				}); 
+				directionalFolder.addColor(directionalLightControls, 'color').onChange(function (e) {
+					directionalLight.color = new THREE.Color(e);
+				});
+                directionalFolder.add(directionalLightControls, 'intensity', 0, 3).onChange(function (e) {
+					directionalLight.intensity = e;
+				});	
+				directionalFolder.add(directionalLightControls, 'angle', 0, Math.PI * 2).onChange(function (e) {
+					directionalLight.angle = e;
+					if(directionalLightControls.helper){
+						scene.getObjectByName("directionalLightHelper").update();
+					}
+				});	
+				directionalFolder.add(directionalLightControls, 'x', -500, 500).onChange(function (e) {
+					directionalLight.position.x = e;
+				});
+				directionalFolder.add(directionalLightControls, 'y', 0, 1000).onChange(function (e) {
+					directionalLight.position.y = e;
+				});
+				directionalFolder.add(directionalLightControls, 'z', -500, 500).onChange(function (e) {
+					directionalLight.position.z = e;
+				});
+				directionalFolder.open();
+
+
+
+				renderScene();
+
+			function renderScene(){				
+			cone.rotation.x += gui_controls.rotationSpeed;      
+			cone.rotation.y += gui_controls.rotationSpeed;
+	        cone.rotation.z += gui_controls.rotationSpeed;	
+			requestAnimationFrame( renderScene );
+			controls.update();			
+			renderer.render( scene, camera );
+			}	
+		
+		
+};
+			function makeCone(x, y, z, material){
+				const geometry = new THREE.ConeGeometry( 200, 400, 4 );
+				const cone = new THREE.Mesh( geometry, material );
+
+				cone.position.x = x;
+				cone.position.y = y;
+				cone.position.z = z;
+				cone.castShadow = cone.receiveShadow = true;
+			
+				return cone;
+			}
+
+
+		</script>
+	</body>
+</html>
